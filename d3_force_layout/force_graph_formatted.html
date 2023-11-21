@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="UTF-8">
+      <title>D3 Force Layout</title>
+      <style>
+         text {
+         font-family: sans-serif;
+         }
+      </style>
+   </head>
+   <body>
+      <button onclick="loadNetwork('energi-vital-network.json')">Energi Vital</button>
+      <button onclick="loadNetwork('energi-miljø-network.json')">Energi Miljø</button>
+      <button onclick="loadNetwork('energi-økonomi-network.json')">Energi Økonomi</button>
+      <svg width="1800" height="1600"></svg>
+      <script src="https://d3js.org/d3.v5.min.js"></script>
+      <script>
+         // Sample data
+         function loadNetwork(network_selection) {
+         
+         
+         
+             
+                 d3.select("svg").selectAll("*").remove();
+                 d3.json(network_selection).then(function(graph) {
+         
+                 
+         
+                 var nodes = graph.nodes;
+         
+                 var links = graph.links;
+         
+         var svg = d3.select("svg"),
+         width = +svg.attr("width"),
+         height = +svg.attr("height");
+         
+         
+         // Centrality - computed from NetworkX - where the graph is coming from
+         
+         var centralityScale = d3.scaleLinear()
+         .domain([d3.min(nodes, d => d.centrality), d3.max(nodes, d => d.centrality)])
+         .range([5, 35]);  // Min and max circle radii
+         
+        var fontSizeScale = d3.scaleLinear()
+        .domain([d3.min(nodes, d => d.centrality), d3.max(nodes, d => d.centrality)])
+        .range([10, 50]);  // Min and max font sizes, adjust as needed
+
+         var simulation = d3.forceSimulation(nodes)
+         .force("link", d3.forceLink(links).id(d => d.id))
+         .force("charge", d3.forceManyBody().strength(-100))
+         .force("center", d3.forceCenter(width / 2, height / 2));
+         
+         // Add links
+         var link = svg.append("g")
+         .attr("class", "links")
+         .selectAll("line")
+         .data(links)
+         .enter().append("line")
+         .attr("stroke", "#999")
+         .attr("stroke-opacity", 0.1);
+         
+         // Add nodes
+         // Create groups for nodes and labels
+         var node = svg.append("g")
+         .attr("class", "nodes")
+         .selectAll(".node")
+         .data(nodes)
+         .enter().append("g")
+         .attr("class", "node")
+         .call(d3.drag()
+         .on("start", dragstarted)
+         .on("drag", dragged)
+         .on("end", dragended));
+         
+         // Append circles to the groups
+         var color = d3.scaleOrdinal(d3.schemeCategory10);  // adjust if needed
+         
+         // When appending circles:
+         node.append("circle")
+         .attr("r", d => centralityScale(d.centrality))
+         .attr("fill", d => color(d.community))
+         .attr("fill-opacity", 0.6);
+         
+         
+         // Append labels to the groups
+        node.append("text")
+        .attr("dx", 12)
+        .attr("dy", ".35em")
+        .style("font-size", d => fontSizeScale(d.centrality) + "px")
+        .text(function(d) {
+            return d.id;
+        });
+         
+         var link = svg.append("g")
+         .attr("class", "links")
+         .selectAll("path")
+         .data(links)
+         .enter().append("path")
+         .attr("fill", "none")
+         .attr("stroke", "#666")
+         .attr("stroke-width", 0.5)
+         .attr("stroke-opacity", 0.4);
+         
+         
+         simulation
+         .nodes(nodes)
+         .on("tick", ticked);
+         
+         simulation.force("link")
+         .links(links);
+         
+         
+         
+         // Add node labels
+         
+         
+         // ... rest of the code ...
+                     
+         function ticked() {
+         node.attr("transform", d => `translate(${d.x},${d.y})`);
+         
+         link.attr("d", function(d) {
+         var dx = d.target.x - d.source.x,
+             dy = d.target.y - d.source.y,
+             dr = Math.sqrt(dx * dx + dy * dy); // distance between nodes
+         return `M ${d.source.x} ${d.source.y} A ${dr} ${dr} 0 0 1 ${d.target.x} ${d.target.y}`;
+         });
+         }
+         
+         function dragstarted(d) {
+         if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+         d.fx = d.x;
+         d.fy = d.y;
+         }
+         
+         function dragged(d) {
+         d.fx = d3.event.x;
+         d.fy = d3.event.y;
+         }
+         
+         function dragended(d) {
+         if (!d3.event.active) simulation.alphaTarget(0);
+         d.fx = null;
+         d.fy = null;
+         }
+         });
+         }
+      </script>
+   </body>
+</html>
